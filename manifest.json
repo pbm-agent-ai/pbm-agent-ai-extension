@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Custos AI",
+  "description": "PBM Agent AI Chrome extension shell for AliExpress automation.",
+  "version": "0.1.0",
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "activeTab",
+    "sidePanel",
+    "notifications",
+    "scripting",
+    "debugger"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:5174/*",
+    "http://localhost:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.aliexpress.com/*",
+        "https://*.naver.com/*",
+        "https://*.coupang.com/*",
+        "https://*.auction.co.kr/*",
+        "https://*.gmarket.co.kr/*",
+        "https://*.11st.co.kr/*",
+        "https://*.tmon.co.kr/*",
+        "https://*.wemakeprice.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5174/*"
+      ],
+      "js": [
+        "webapp-bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Custos AI"
+  }
+}
