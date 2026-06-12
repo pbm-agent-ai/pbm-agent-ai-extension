@@ -9,6 +9,7 @@ import { recoverInterruptedRun, resumeApprovalRunIfPossible } from './recoveryMa
 import { syncPendingRuns } from './runManager';
 import { revalidateRunTabOrAbort } from './tabManager';
 import { collectSnapshotFromActiveTab } from './contentBridge';
+import { searchAliExpressProducts } from './aliexpressSearch';
 
 chrome.runtime.onInstalled.addListener(() => {
   void initializeStorage().then(() => broadcastStatusSnapshot());
@@ -172,6 +173,26 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender, sendResp
       sendResponse(response);
     });
 
+    return true;
+  }
+
+  if (message.type === 'SEARCH_ALIEXPRESS_PRODUCTS') {
+    void searchAliExpressProducts(message.payload.keyword, message.payload.maxResults)
+      .then((products) => {
+        sendResponse({
+          type: 'SEARCH_ALIEXPRESS_PRODUCTS_RESULT',
+          payload: { ok: true, products }
+        });
+      })
+      .catch((error: unknown) => {
+        sendResponse({
+          type: 'SEARCH_ALIEXPRESS_PRODUCTS_RESULT',
+          payload: {
+            ok: false,
+            error: error instanceof Error ? error.message : 'AliExpress 검색 실패'
+          }
+        });
+      });
     return true;
   }
 

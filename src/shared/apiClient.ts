@@ -12,6 +12,8 @@ import type {
   StepRequest,
   StepResponse,
   StartRunResponse,
+  BrowserSearchResultReport,
+  BrowserSearchFailureReport,
   UrlPriceReport
 } from './types';
 
@@ -144,6 +146,26 @@ export const apiClient = {
    */
   reportUrlPrice(payload: UrlPriceReport, deviceToken: string): Promise<void> {
     return requestApiResponse<void>('/api/v1/url-monitoring/price-report', {
+      method: 'POST',
+      token: deviceToken,
+      body: JSON.stringify(payload)
+    });
+  },
+
+  reportBrowserSearchResults(payload: BrowserSearchResultReport, deviceToken: string): Promise<void> {
+    return requestApiResponse<void>('/api/v1/browser-search/report', {
+      method: 'POST',
+      token: deviceToken,
+      body: JSON.stringify(payload)
+    });
+  },
+
+  /**
+   * 브라우저 검색 태스크 실패를 서버에 보고한다.
+   * 서버가 태스크를 FAILED로 마킹하여 재디스패치를 중단한다.
+   */
+  reportBrowserSearchFailure(payload: BrowserSearchFailureReport, deviceToken: string): Promise<void> {
+    return requestApiResponse<void>('/api/v1/browser-search/failure', {
       method: 'POST',
       token: deviceToken,
       body: JSON.stringify(payload)

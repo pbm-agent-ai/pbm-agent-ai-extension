@@ -10,12 +10,19 @@
  *   CustomEvent는 Isolated World에서 발행 시 MAIN World 리스너에 전달되지 않는다.
  */
 
-import type { PairDeviceMessage, PairDeviceResultMessage } from '../shared/types';
+import type {
+  PairDeviceMessage,
+  PairDeviceResultMessage,
+  SearchAliExpressProductsMessage,
+  SearchAliExpressProductsResultMessage
+} from '../shared/types';
 
 const READY_MESSAGE_TYPE = 'PBM_EXT_READY';
 const PAIR_REQUEST_TYPE = 'PBM_EXTENSION_PAIR_REQUEST';
 const PAIR_RESULT_TYPE = 'PBM_EXTENSION_PAIR_RESULT';
 const PING_TYPE = 'PBM_EXTENSION_PING';
+const ALIEXPRESS_SEARCH_REQUEST_TYPE = 'PBM_ALIEXPRESS_SEARCH_REQUEST';
+const ALIEXPRESS_SEARCH_RESULT_TYPE = 'PBM_ALIEXPRESS_SEARCH_RESULT';
 
 console.log('[PBM] webapp-bridge loaded');
 
@@ -58,6 +65,52 @@ window.addEventListener('message', async (event) => {
   // 프론트가 설치 여부 ping 요청 → 즉시 ready 메시지로 응답
   if (data?.type === PING_TYPE) {
     sendReadyMessage();
+    return;
+  }
+
+  if (data?.type === ALIEXPRESS_SEARCH_REQUEST_TYPE) {
+    if (!isContextValid()) {
+      window.postMessage(
+        {
+          type: ALIEXPRESS_SEARCH_RESULT_TYPE,
+          payload: {
+            ok: false,
+            error: 'Extension이 재로드됐습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.'
+          }
+        },
+        '*'
+      );
+      return;
+    }
+
+    try {
+      const response = (await chrome.runtime.sendMessage({
+        type: 'SEARCH_ALIEXPRESS_PRODUCTS',
+        payload: {
+          keyword: String((event.data as { payload?: { keyword?: string } })?.payload?.keyword ?? ''),
+          maxResults: 20
+        }
+      } satisfies SearchAliExpressProductsMessage)) as SearchAliExpressProductsResultMessage | undefined;
+
+      window.postMessage(
+        {
+          type: ALIEXPRESS_SEARCH_RESULT_TYPE,
+          payload: response?.payload ?? { ok: false, error: 'AliExpress 검색 응답을 받지 못했습니다.' }
+        },
+        '*'
+      );
+    } catch (error) {
+      window.postMessage(
+        {
+          type: ALIEXPRESS_SEARCH_RESULT_TYPE,
+          payload: {
+            ok: false,
+            error: error instanceof Error ? error.message : 'AliExpress 검색 요청 실패'
+          }
+        },
+        '*'
+      );
+    }
     return;
   }
 

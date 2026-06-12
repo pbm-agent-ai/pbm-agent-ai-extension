@@ -107,11 +107,12 @@ export async function runStepLoop(): Promise<void> {
 
       if (!instruction) {
         // 옵션 선택 대기 상태: 텔레그램 응답이 올 때까지 폴링
-        if (stepResponse.status === 'AWAITING_OPTION_SELECTION') {
-          console.info(`[stepLoopManager] 옵션 선택 대기 → 폴링 시작 - runId=${myRunId}`);
+        if (stepResponse.status === 'AWAITING_OPTION_SELECTION' || stepResponse.status === 'AWAITING_LOGIN_CREDENTIALS') {
+          const waitingForLogin = stepResponse.status === 'AWAITING_LOGIN_CREDENTIALS';
+          console.info(`[stepLoopManager] ${waitingForLogin ? '로그인 자격증명' : '옵션 선택'} 대기 → 폴링 시작 - runId=${myRunId}`);
           await updateStorage({
-            extensionStatus: 'AWAITING_OPTION_SELECTION',
-            backendRunStatus: 'AWAITING_OPTION_SELECTION'
+            extensionStatus: waitingForLogin ? 'AWAITING_LOGIN_CREDENTIALS' : 'AWAITING_OPTION_SELECTION',
+            backendRunStatus: waitingForLogin ? 'AWAITING_LOGIN_CREDENTIALS' : 'AWAITING_OPTION_SELECTION'
           });
           await broadcastStatusSnapshot();
 
@@ -130,7 +131,7 @@ export async function runStepLoop(): Promise<void> {
 
             // 서버가 RUNNING으로 전환 + instruction 반환 → step loop 재개
             if (pollResponse.instruction) {
-              console.info(`[stepLoopManager] 옵션 선택 완료 → step loop 재개 - runId=${myRunId}`);
+              console.info(`[stepLoopManager] ${waitingForLogin ? '로그인 자격증명' : '옵션 선택'} 완료 → step loop 재개 - runId=${myRunId}`);
               await updateStorage({
                 extensionStatus: 'EXECUTING',
                 backendRunStatus: 'RUNNING'
@@ -150,12 +151,12 @@ export async function runStepLoop(): Promise<void> {
             }
 
             // 아직 대기 중 → 계속 폴링
-            console.debug(`[stepLoopManager] 옵션 선택 대기 중... (${Math.round((Date.now() - pollStartTime) / 1000)}초 경과)`);
+            console.debug(`[stepLoopManager] ${waitingForLogin ? '로그인 자격증명' : '옵션 선택'} 대기 중... (${Math.round((Date.now() - pollStartTime) / 1000)}초 경과)`);
           }
 
           // 폴링 루프가 break로 끝났으면 step loop 재개, timeout이면 abort
           if (Date.now() - pollStartTime >= OPTION_SELECTION_TIMEOUT_MS) {
-            await abortActiveRun('OPTION_SELECTION_TIMEOUT', '옵션 선택 시간 초과 (3분)');
+            await abortActiveRun('OPTION_SELECTION_TIMEOUT', waitingForLogin ? '로그인 자격증명 입력 시간 초과 (3분)' : '옵션 선택 시간 초과 (3분)');
             return;
           }
 

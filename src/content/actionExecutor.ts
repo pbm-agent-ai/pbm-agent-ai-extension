@@ -50,6 +50,7 @@ function pickClickableAncestor(element: HTMLElement): HTMLElement {
   return element.closest<HTMLElement>('button, a, [role="button"], [role="option"], input[type="button"], input[type="submit"]') ?? element;
 }
 
+
 function buildElementDebugInfo(
   instruction: ActionInstruction,
   element: HTMLElement,
@@ -87,6 +88,16 @@ function buildElementDebugInfo(
 }
 
 function resolveTargetElement(instruction: ActionInstruction): LocatedElementResult | null {
+  // Vision AI가 준 viewport 좌표가 있으면, 해당 지점의 실제 DOM 요소를 우선 사용한다.
+  // 이렇게 해야 "비전 좌표 → elementFromPoint → DOM rect → 최종 픽셀 좌표" 경로가 보장된다.
+  const hasViewportTarget = instruction.target?.viewportX != null && instruction.target?.viewportY != null;
+  if (hasViewportTarget) {
+    const byViewport = locateByViewport(instruction);
+    if (byViewport) {
+      return { element: byViewport, strategy: 'viewport' };
+    }
+  }
+
   if (instruction.target?.nodeId) {
     const byNodeId = locateByNodeId(instruction.target.nodeId);
     if (byNodeId) {
@@ -99,6 +110,7 @@ function resolveTargetElement(instruction: ActionInstruction): LocatedElementRes
     return { element: bySelectorOrLabel, strategy: 'selectorOrLabel' };
   }
 
+  // viewport 좌표는 위에서 이미 우선 시도했지만, 안전하게 마지막 fallback도 유지한다.
   const byViewport = locateByViewport(instruction);
   if (byViewport) {
     return { element: byViewport, strategy: 'viewport' };
@@ -625,9 +637,9 @@ export function locateElementCenter(instruction: ActionInstruction): {
     return null;
   }
 
-  // 요소 내부 랜덤 좌표 (가장자리 5px 제외, humanizedClick과 동일한 패턴)
-  const x = Math.round(rect.left + 5 + Math.random() * Math.max(rect.width - 10, 1));
-  const y = Math.round(rect.top + 5 + Math.random() * Math.max(rect.height - 10, 1));
+  // 요소 정중앙 좌표 (Gemini 좌표 오차로 인접 버튼이 클릭되는 문제 방지)
+  const x = Math.round(rect.left + rect.width / 2);
+  const y = Math.round(rect.top + rect.height / 2);
 
   return { x, y, debug };
 }

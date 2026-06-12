@@ -1,5 +1,5 @@
 export const HEARTBEAT_ALARM_NAME = 'pbm-heartbeat';
-export const HEARTBEAT_PERIOD_MINUTES = 1 / 6; // 10초
+export const HEARTBEAT_PERIOD_MINUTES = 0.25; // 15초
 export const STATUS_LOG_LIMIT = 20;
 export const APPROVAL_TIMEOUT_MS = 10 * 60 * 1000;
 export const STEP_REQUEST_MAX_RETRIES = 3;

@@ -22,6 +22,7 @@ function getExtensionStatusLabel(status: ExtensionStatus): string {
     EXECUTING: '실행 중',
     AWAITING_APPROVAL: '승인 대기',
     AWAITING_OPTION_SELECTION: '옵션 선택 대기',
+    AWAITING_LOGIN_CREDENTIALS: '로그인 정보 대기',
     INTERRUPTED: '중단됨',
     RECOVERING: '복구 중',
     ERROR: '오류',
@@ -39,6 +40,7 @@ function getBackendRunStatusLabel(status: BackendRunStatus): string {
     RUNNING: '실행 중',
     AWAITING_APPROVAL: '승인 대기',
     AWAITING_OPTION_SELECTION: '옵션 선택 대기',
+    AWAITING_LOGIN_CREDENTIALS: '로그인 정보 대기',
     APPROVAL_EXPIRED: '승인 만료',
     INTERRUPTED: '중단됨',
     RECOVERING: '복구 중',
@@ -57,6 +59,7 @@ function RunStatusBadge({ status }: { status: string }) {
     RUNNING: '#10b981',
     AWAITING_APPROVAL: '#8b5cf6',
     AWAITING_OPTION_SELECTION: '#8b5cf6',
+    AWAITING_LOGIN_CREDENTIALS: '#8b5cf6',
     INTERRUPTED: '#ef4444',
     RECOVERING: '#f97316',
   };

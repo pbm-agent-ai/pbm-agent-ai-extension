@@ -136,7 +136,7 @@ export async function revalidateRunTabOrAbort(): Promise<boolean> {
   }
 
   // 옵션 선택 대기 중에는 사용자가 확인 중인 외부 스토어 페이지를 절대 강제로 복구하지 않는다.
-  if (storage.extensionStatus === 'AWAITING_OPTION_SELECTION') {
+  if (storage.extensionStatus === 'AWAITING_OPTION_SELECTION' || storage.extensionStatus === 'AWAITING_LOGIN_CREDENTIALS') {
     return true;
   }
 

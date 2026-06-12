@@ -5,6 +5,7 @@ export type ExtensionStatus =
   | 'EXECUTING'
   | 'AWAITING_APPROVAL'
   | 'AWAITING_OPTION_SELECTION'
+  | 'AWAITING_LOGIN_CREDENTIALS'
   | 'INTERRUPTED'
   | 'RECOVERING'
   | 'ERROR'
@@ -17,6 +18,7 @@ export type BackendRunStatus =
   | 'RUNNING'
   | 'AWAITING_APPROVAL'
   | 'AWAITING_OPTION_SELECTION'
+  | 'AWAITING_LOGIN_CREDENTIALS'
   | 'APPROVAL_EXPIRED'
   | 'INTERRUPTED'
   | 'RECOVERING'
@@ -129,6 +131,20 @@ export interface OptionGroup {
   selector?: string;
   options: string[];
   selectedOption?: string;
+  /** 비활성 상태 (이전 옵션 선택 필요) */
+  disabled?: boolean;
+}
+
+export interface LoginFormSnapshot {
+  detected: boolean;
+  usernameFilled: boolean;
+  passwordFilled: boolean;
+  usernameSelector?: string;
+  passwordSelector?: string;
+  loginButtonSelector?: string;
+  usernameLabel?: string;
+  passwordLabel?: string;
+  loginButtonLabel?: string;
 }
 
 export interface PageSnapshot {
@@ -137,6 +153,7 @@ export interface PageSnapshot {
   visibleTextSummary: string;
   interactiveElements: InteractiveElement[];
   optionGroups?: OptionGroup[];
+  loginForm?: LoginFormSnapshot;
   priceCandidates?: string[];
   currencyCandidates?: string[];
   /** 전체 페이지 HTML (전처리 없이 AI에게 직접 전달용, 최대 80KB) */
@@ -271,6 +288,8 @@ export interface HeartbeatResponse {
   assignedRun: AssignedRun | null;
   /** URL 직접 입력 모니터링 태스크 목록 (없으면 빈 배열) */
   urlMonitoringTasks: UrlMonitoringTask[];
+  /** 브라우저 검색 태스크 목록 (없으면 빈 배열) */
+  browserSearchTasks: BrowserSearchTask[];
 }
 
 /** 서버 → 익스텐션: heartbeat 응답에 포함되는 URL 모니터링 태스크 */
@@ -296,6 +315,26 @@ export interface UrlPriceReport {
   imageUrl?: string;
 }
 
+export interface BrowserSearchTask {
+  taskId: number;
+  commandId: string;
+  platform: string;
+  keyword: string;
+  searchUrl: string;
+  maxResults: number;
+}
+
+export interface BrowserSearchResultReport {
+  taskId: number;
+  candidates: AliExpressSearchProduct[];
+}
+
+/** 익스텐션 → 서버: 브라우저 검색 태스크 실패 보고 */
+export interface BrowserSearchFailureReport {
+  taskId: number;
+  reason: string;
+}
+
 export type PendingRunsResponse = AssignedRun | null;
 
 export interface StartRunResponse {
@@ -317,6 +356,18 @@ export interface RegisterDeviceResponse {
   deviceToken: string;
   deviceStatus?: string;
   lastSeenAt?: string;
+}
+
+export interface AliExpressSearchProduct {
+  productId: string;
+  title: string;
+  lprice: string;
+  mallName: string;
+  productUrl: string;
+  imageUrl?: string;
+  currency: string;
+  platform: 'ALIEXPRESS';
+  searchKeyword: string;
 }
 
 export interface BackgroundToSidePanelMessage {
@@ -352,6 +403,14 @@ export type SidePanelToBackgroundMessage =
 
 export interface BackgroundToContentCollectSnapshotMessage {
   type: 'COLLECT_SNAPSHOT';
+}
+
+export interface BackgroundToContentCollectAliExpressSearchResultsMessage {
+  type: 'COLLECT_ALIEXPRESS_SEARCH_RESULTS';
+  payload: {
+    keyword: string;
+    maxResults?: number;
+  };
 }
 
 export interface BackgroundToContentExecuteActionMessage {
@@ -420,6 +479,19 @@ export interface ContentToBackgroundSnapshotResultMessage {
       };
 }
 
+export interface ContentToBackgroundAliExpressSearchResultsMessage {
+  type: 'ALIEXPRESS_SEARCH_RESULTS';
+  payload:
+    | {
+        ok: true;
+        products: AliExpressSearchProduct[];
+      }
+    | {
+        ok: false;
+        error: string;
+      };
+}
+
 export interface ContentToBackgroundActionResultMessage {
   type: 'ACTION_RESULT';
   payload:
@@ -452,17 +524,42 @@ export interface PairDeviceResultMessage {
       };
 }
 
+export interface SearchAliExpressProductsMessage {
+  type: 'SEARCH_ALIEXPRESS_PRODUCTS';
+  payload: {
+    keyword: string;
+    maxResults?: number;
+  };
+}
+
+export interface SearchAliExpressProductsResultMessage {
+  type: 'SEARCH_ALIEXPRESS_PRODUCTS_RESULT';
+  payload:
+    | {
+        ok: true;
+        products: AliExpressSearchProduct[];
+      }
+    | {
+        ok: false;
+        error: string;
+      };
+}
+
 export type RuntimeMessage =
   | BackgroundToSidePanelMessage
   | SidePanelToBackgroundMessage
   | PairDeviceMessage
+  | SearchAliExpressProductsMessage
   | BackgroundToContentCollectSnapshotMessage
   | BackgroundToContentExecuteActionMessage
-  | BackgroundToContentGetElementRectMessage;
+  | BackgroundToContentGetElementRectMessage
+  | BackgroundToContentCollectAliExpressSearchResultsMessage;
 
 export type RuntimeResponse =
   | BackgroundToSidePanelMessage
   | PairDeviceResultMessage
+  | SearchAliExpressProductsResultMessage
   | ContentToBackgroundSnapshotResultMessage
   | ContentToBackgroundActionResultMessage
-  | ContentToBackgroundElementRectResultMessage;
+  | ContentToBackgroundElementRectResultMessage
+  | ContentToBackgroundAliExpressSearchResultsMessage;

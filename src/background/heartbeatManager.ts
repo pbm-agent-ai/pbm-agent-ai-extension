@@ -4,6 +4,7 @@ import { pushLog } from '../shared/logger';
 import { broadcastStatusSnapshot } from '../shared/messageRouter';
 import { getStorage, updateStorage } from '../shared/storageManager';
 import type { ExtensionStatus } from '../shared/types';
+import { processBrowserSearchTasks } from './browserSearchTaskManager';
 import { resumeApprovalRunIfPossible } from './recoveryManager';
 import { startAssignedRun } from './runManager';
 import { processUrlMonitoringTasks } from './urlMonitoringManager';
@@ -14,6 +15,7 @@ const HEARTBEAT_ELIGIBLE_STATUSES: ExtensionStatus[] = [
   'EXECUTING',        // 실행 중
   'AWAITING_APPROVAL',// 승인 대기
   'AWAITING_OPTION_SELECTION', // 옵션 선택 대기
+  'AWAITING_LOGIN_CREDENTIALS', // 로그인 자격증명 대기
   'RECOVERING',       // 복구 중
   'ERROR',            // 에러 후 자동 복구 대기 → heartbeat로 ONLINE_STANDBY로 전환
   'ABORTED',          // 중단 후 자동 복구 대기 → heartbeat로 ONLINE_STANDBY로 전환
@@ -100,6 +102,8 @@ export async function runHeartbeat(reason: 'startup' | 'alarm' | 'pairing' = 'al
         ? 'AWAITING_APPROVAL'
         : storage.extensionStatus === 'AWAITING_OPTION_SELECTION'
           ? 'AWAITING_OPTION_SELECTION'
+          : storage.extensionStatus === 'AWAITING_LOGIN_CREDENTIALS'
+            ? 'AWAITING_LOGIN_CREDENTIALS'
           : 'RUNNING'
       : null,
     extensionStatus: nextStatus,
@@ -129,6 +133,19 @@ export async function runHeartbeat(reason: 'startup' | 'alarm' | 'pairing' = 'al
         action: null,
         status: 'URL_MONITOR_FATAL',
         message: `URL 모니터링 처리 중 오류: ${e instanceof Error ? e.message : String(e)}`
+      });
+    });
+  }
+
+  if (response.browserSearchTasks && response.browserSearchTasks.length > 0) {
+    processBrowserSearchTasks(response.browserSearchTasks).catch((e) => {
+      pushLog({
+        runId: storage.activeRunId,
+        deviceId: storage.deviceId,
+        stepIndex: storage.stepIndex,
+        action: null,
+        status: 'BROWSER_SEARCH_FATAL',
+        message: `브라우저 검색 처리 중 오류: ${e instanceof Error ? e.message : String(e)}`
       });
     });
   }

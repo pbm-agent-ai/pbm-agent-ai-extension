@@ -1,5 +1,6 @@
 import { collectSnapshot } from './snapshotCollector';
 import { executeInstruction, locateElementCenter } from './actionExecutor';
+import { collectAliExpressSearchResults } from './aliexpressSearchCollector';
 
 /**
  * content script 진입점.
@@ -56,6 +57,30 @@ function initialize() {
         sendResponse({ type: 'ELEMENT_RECT_RESULT', payload: { ok: false, error: '대상 요소를 찾지 못함', errorCode: 'ELEMENT_NOT_FOUND' } });
       }
       return false;
+    }
+
+    if (message?.type === 'COLLECT_ALIEXPRESS_SEARCH_RESULTS') {
+      // collectAliExpressSearchResults가 비동기(DOM 폴링)이므로 sendResponse를 비동기로 사용
+      collectAliExpressSearchResults(
+        message.payload.keyword,
+        message.payload.maxResults
+      )
+        .then((products) => {
+          sendResponse({
+            type: 'ALIEXPRESS_SEARCH_RESULTS',
+            payload: { ok: true, products }
+          });
+        })
+        .catch((error) => {
+          sendResponse({
+            type: 'ALIEXPRESS_SEARCH_RESULTS',
+            payload: {
+              ok: false,
+              error: error instanceof Error ? error.message : 'AliExpress 검색 결과 수집 실패'
+            }
+          });
+        });
+      return true; // sendResponse를 비동기로 사용함을 Chrome에 알림
     }
 
     if (message?.type === 'EXECUTE_ACTION') {
